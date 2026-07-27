@@ -101,28 +101,28 @@ export default function Sidebar({
         <NavItem
           collapsed={collapsed}
           icon={<LayoutGrid className="w-4 h-4" />}
-          label="🏠 Dashboard"
+          label="Dashboard"
           active={view === 'dashboard'}
           onClick={() => onViewChange?.('dashboard')}
         />
         <NavItem
           collapsed={collapsed}
           icon={<Sparkles className="w-4 h-4" />}
-          label="🧠 Generate"
+          label="Generate"
           active={view === 'workspace'}
           onClick={() => onViewChange?.('workspace')}
         />
         <NavItem
           collapsed={collapsed}
           icon={<Scroll className="w-4 h-4" />}
-          label="📝 High-Yield Notes"
+          label="High-Yield Notes"
           active={view === 'notes'}
           onClick={() => onViewChange?.('notes')}
         />
         <NavItem
           collapsed={collapsed}
           icon={<Target className="w-4 h-4" />}
-          label="🎯 Quiz Arena"
+          label="Quiz Arena"
           active={view === 'quiz'}
           onClick={() => onViewChange?.('quiz')}
         />
@@ -157,25 +157,25 @@ export default function Sidebar({
         <div className="px-3 pt-3 pb-1 space-y-0.5">
           <SidebarBtn
             icon={<BookOpen className="w-3.5 h-3.5" />}
-            label="📚 Vault"
+            label="Vault"
             badge={totalCards}
             onClick={() => onFilterSelect?.('all')}
           />
           <SidebarBtn
             icon={<Star className="w-3.5 h-3.5" />}
-            label="⭐ Favorites"
+            label="Favorites"
             onClick={() => onFilterSelect?.('favorites')}
           />
           <SidebarBtn
             icon={<Clock className="w-3.5 h-3.5" />}
-            label="⏰ Review Due"
+            label="Review Due"
             badge={dueCount}
             badgeVariant="review"
             onClick={() => onFilterSelect?.('due')}
           />
           <SidebarBtnWithTooltip
             icon={<Settings className="w-3.5 h-3.5" />}
-            label="⚙ Settings"
+            label="Settings"
             tooltip="Settings mode is reserved for premium MnemonicFlow institutional accounts."
           />
         </div>

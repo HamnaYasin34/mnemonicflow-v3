@@ -83,7 +83,7 @@ export default function MnemonicFlowPro() {
   const dueCount = getDueCount(cards)
 
   if (!mounted) return (
-    <div className="flex h-screen bg-void items-center justify-center">
+    <div className="flex min-h-screen bg-void items-center justify-center">
       <div className="flex items-center gap-3">
         <div className="w-5 h-5 rounded-full border-2 border-neon-green border-t-transparent animate-spin" />
         <span className="text-xs text-ink-tertiary font-mono tracking-widest">LOADING...</span>
@@ -93,7 +93,7 @@ export default function MnemonicFlowPro() {
 
   return (
     <AuthGuard>
-      <div className="flex h-screen bg-void overflow-hidden font-sans relative">
+      <div className="flex min-h-screen bg-void font-sans relative">
 
         {/* Ambient background */}
         <div className="pointer-events-none fixed inset-0 overflow-hidden">
@@ -132,7 +132,7 @@ export default function MnemonicFlowPro() {
         )}
 
         {/* ── Desktop sidebar (flex child — width syncs automatically, no margin hacks) ── */}
-        <div className="hidden lg:block shrink-0 h-full">
+        <div className="hidden lg:block shrink-0 h-screen sticky top-0">
           <Sidebar
             activeSubject={activeSubject}
             onSubjectChange={setActiveSubject}
@@ -152,13 +152,13 @@ export default function MnemonicFlowPro() {
         </div>
 
         {/* ── Main column ── */}
-        <main className="flex-1 flex flex-col min-h-0 overflow-hidden relative z-0 lg:border-x lg:border-border min-w-0">
+        <main className="flex-1 flex flex-col min-h-screen relative z-0 lg:border-x lg:border-border min-w-0">
           {/* Top bar (desktop only — mobile controls live in each view's own header) */}
-          <div className="hidden lg:flex shrink-0 items-center justify-end px-4 py-2 border-b border-border bg-[rgba(9,9,9,0.9)]">
+          <div className="hidden lg:flex shrink-0 items-center justify-end px-4 py-2 border-b border-border bg-[rgba(9,9,9,0.9)] sticky top-0 z-20 backdrop-blur-md">
             <UserMenu />
           </div>
 
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1">
             {view === 'dashboard' ? (
               <WelcomeDashboard
                 userName={userName}
@@ -179,6 +179,7 @@ export default function MnemonicFlowPro() {
                 onToggleVaultCollapsed={() => setVaultCollapsed(v => !v)}
                 initialTopic={pendingTopic}
                 onMnemonicGenerated={handleMnemonicGenerated}
+                onViewChange={setView}
               />
             ) : view === 'notes' ? (
               <HighYieldNotes
@@ -196,7 +197,7 @@ export default function MnemonicFlowPro() {
 
         {/* ── Vault panel: desktop static rail (only in workspace view) ── */}
         {view === 'workspace' && !vaultCollapsed && (
-          <div className="hidden lg:block shrink-0 h-full w-80">
+          <div className="hidden lg:block shrink-0 h-screen sticky top-0 w-80">
             <VaultPanel
               cards={cards}
               onDelete={handleDelete}

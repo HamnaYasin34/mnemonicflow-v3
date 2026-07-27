@@ -182,7 +182,7 @@ export default function VaultPanel({ cards, onDelete, onToggleFav, onReview, isO
                   {expanded && (
                     <div className="px-3 pb-3 pt-1 space-y-3 animate-fade-in border-t border-border">
                       {/* Flip card: front (mnemonic) / back (Anki front+back) */}
-                      <FlipPreview card={card} />
+                      <FlipPreview card={card} onToggleFav={() => onToggleFav(card.id)} />
 
                       <div className="flex items-center justify-between text-[9px] text-ink-muted font-mono pt-1">
                         <span>{card.repetitions} review{card.repetitions !== 1 ? 's' : ''} · interval {card.interval}d</span>
@@ -230,25 +230,25 @@ export default function VaultPanel({ cards, onDelete, onToggleFav, onReview, isO
   )
 }
 
+import PremiumFlashcard from './PremiumFlashcard'
+
 // ── Flip-card preview: front shows the mnemonic, back shows the Anki Q/A ──────
-function FlipPreview({ card }: { card: Flashcard }) {
-  const [flipped, setFlipped] = useState(false)
+function FlipPreview({ card, onToggleFav }: { card: Flashcard; onToggleFav: () => void }) {
   return (
-    <div className="flip-card h-24" onClick={() => setFlipped(f => !f)} role="button" aria-label="Flip card">
-      <div className={cn('flip-card-inner w-full h-full', flipped && 'is-flipped')}>
-        <div className="flip-card-face absolute inset-0 p-3 rounded-lg border border-neon-green-border bg-neon-green-dim flex flex-col cursor-pointer">
-          <div className="flex items-center gap-1.5 text-[9px] text-neon-green font-mono mb-1">
-            <Sparkles className="w-3 h-3" /> MNEMONIC — tap to flip
-          </div>
-          <p className="text-[11px] text-ink-primary leading-snug overflow-hidden">{truncate(card.mnemonic.mnemonic, 140)}</p>
-        </div>
-        <div className="flip-card-face flip-card-back absolute inset-0 p-3 rounded-lg border border-neon-biochem-border bg-neon-biochem-dim flex flex-col cursor-pointer">
-          <div className="flex items-center gap-1.5 text-[9px] text-neon-biochem font-mono mb-1">
-            <CreditCard className="w-3 h-3" /> ANKI Q&A
-          </div>
-          <p className="text-[10px] text-ink-primary font-medium leading-snug overflow-hidden">{truncate(card.mnemonic.ankiFront, 80)}</p>
-        </div>
-      </div>
-    </div>
+    <PremiumFlashcard
+      card={{
+        id: card.id,
+        topic: card.topic,
+        subject: card.subject,
+        mnemonic: {
+          mnemonic: card.mnemonic.mnemonic,
+          ankiFront: card.mnemonic.ankiFront,
+          ankiBack: card.mnemonic.ankiBack,
+          explanation: card.mnemonic.explanation,
+        }
+      }}
+      isFavorite={card.isFavorite}
+      onToggleFav={onToggleFav}
+    />
   )
 }
