@@ -6,10 +6,11 @@ import {
   BookOpen, Eye, CreditCard, AlertCircle, CheckCircle2,
   ImageIcon, Download, Menu, BookMarked,
   Volume2, Layers, Highlighter, HelpCircle, ThumbsUp, ThumbsDown, Meh,
-  Maximize2, Share2, X,
+  Maximize2, Share2, X, Stethoscope, Flame, Laugh, Wand2, Ghost, Rocket,
+  Scroll, ShieldAlert, Film, Swords, SmilePlus, ArrowRight, Info, Check,
 } from 'lucide-react'
 import { SUBJECTS, getSubject } from '../lib/subjects'
-import { SubjectId, MnemonicOutput, GenerationStatus, MnemonicType, VisualStyle } from '../types'
+import { SubjectId, MnemonicOutput, GenerationStatus, MnemonicType, VisualStyle, StoryStyle } from '../types'
 import { cn } from '../lib/utils'
 
 interface WorkspaceProps {
@@ -22,6 +23,8 @@ interface WorkspaceProps {
   onToggleVaultCollapsed?: () => void
   /** Topic handed off from the dashboard's "Quick Generate" search bar. */
   initialTopic?: string
+  onViewChange?: (view: 'dashboard' | 'workspace' | 'notes' | 'quiz') => void
+  onMnemonicGenerated?: (topic: string, subjectLabel: string, result: MnemonicOutput) => void
 }
 
 type ResultTab = 'explain' | 'story' | 'anki' | 'visual'
@@ -43,7 +46,7 @@ function buildImageUrl(compiledPrompt: string): string {
 
 export default function Workspace({
   activeSubject, onSubjectChange, onCardSaved, onOpenSidebar, onOpenVault,
-  vaultCollapsed, onToggleVaultCollapsed, initialTopic,
+  vaultCollapsed, onToggleVaultCollapsed, initialTopic, onViewChange, onMnemonicGenerated,
 }: WorkspaceProps) {
   const [topic, setTopic] = useState(initialTopic?.trim() || '')
   const [status, setStatus] = useState<GenerationStatus>('idle')
@@ -93,6 +96,7 @@ export default function Workspace({
   // ── User-controlled mnemonic style ───────────────────────────────────────
   const [mnemonicType, setMnemonicType] = useState<MnemonicType>('hybrid')
   const [visualStyle, setVisualStyle] = useState<VisualStyle>('sketchy')
+  const [storyStyle, setStoryStyle] = useState<StoryStyle>('clinical')
 
   const subject = getSubject(activeSubject)
 
@@ -121,7 +125,7 @@ export default function Workspace({
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: topic.trim(), subject: subject.id, mnemonicType, visualStyle }),
+        body: JSON.stringify({ topic: topic.trim(), subject: subject.id, mnemonicType, visualStyle, storyStyle }),
       })
       const json = await res.json()
       if (!res.ok || !json.success) throw new Error(json.error ?? 'Generation failed.')
@@ -131,11 +135,12 @@ export default function Workspace({
       setStatus('success')
       setTab('explain')
       generateImg(data.visualScene)
+      onMnemonicGenerated?.(topic.trim(), subject.label, data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
       setStatus('error')
     }
-  }, [topic, subject.id, status, generateImg, audioOn, mnemonicType, visualStyle])
+  }, [topic, subject.id, status, generateImg, audioOn, mnemonicType, visualStyle, storyStyle])
 
   // ── Multi-sensory toggle handlers ────────────────────────────────────────
   const toggleAudio = useCallback(() => {
@@ -161,7 +166,6 @@ export default function Workspace({
   const handleConfidence = useCallback((level: 'hard' | 'good' | 'easy') => {
     setConfidence(level)
     // Hook point: feed into SM-2 spaced repetition once card is reviewed from the vault.
-    // quality mapping: hard=2, good=4, easy=5 (see app/lib/vault.ts sm2())
   }, [])
 
   const handleCopy = () => {
@@ -296,7 +300,7 @@ export default function Workspace({
 
       {/* Input Area */}
       <div className="shrink-0 px-4 sm:px-6 lg:px-8 2xl:px-0 py-4 sm:py-6 border-b border-border">
-      <div className="w-full 2xl:max-w-4xl 2xl:mx-auto space-y-3 sm:space-y-4">
+      <div className="w-full 2xl:max-w-4xl 2xl:mx-auto space-y-4 sm:space-y-5">
         {/* Subject selector */}
         <div className="relative">
           <button
@@ -378,6 +382,58 @@ export default function Workspace({
                 {opt.label}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Premium Narrative Story Style Selection Cards */}
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest font-mono text-ink-tertiary mb-2">Narrative Story Style</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {([
+              { key: 'clinical' as const, label: 'Clinical Focus', subtitle: 'Board & Ward', desc: 'Ground concepts in practical hospital & clinic exam-style case vignettes.', icon: Stethoscope, color: 'text-neon-physio', accent: 'border-neon-physio/50 bg-neon-physio/10' },
+              { key: 'dramatic' as const, label: 'Dramatic Opera', subtitle: 'High Stakes', desc: 'Intense personal conflicts, heavy dialogue, and life-or-death decisions.', icon: Flame, color: 'text-neon-danger', accent: 'border-neon-danger/50 bg-neon-danger/10' },
+              { key: 'comedy' as const, label: 'Comedy Central', subtitle: 'Satirical Tone', desc: 'Witty banter, slapstick elements, and absurdly funny situations.', icon: Laugh, color: 'text-neon-green', accent: 'border-neon-green/50 bg-neon-green/10' },
+              { key: 'fantasy' as const, label: 'Fantasy Arcana', subtitle: 'Epic Lore', desc: 'Sorcerers, ancient curses, mythical beasts, and heroic quests.', icon: Wand2, color: 'text-neon-biochem', accent: 'border-neon-biochem/50 bg-neon-biochem/10' },
+              { key: 'horror' as const, label: 'Gothic Horror', subtitle: 'Eerie Shadow', desc: 'Abandoned manors, eerie supernatural dread, and dark gothic suspense.', icon: Ghost, color: 'text-purple-400', accent: 'border-purple-400/50 bg-purple-400/10' },
+              { key: 'scifi' as const, label: 'Sci-Fi Odyssey', subtitle: 'Deep Space', desc: 'Cybernetics, stellar starships, time dilations, and rogue supercomputers.', icon: Rocket, color: 'text-blue-400', accent: 'border-blue-400/50 bg-blue-400/10' },
+              { key: 'historical' as const, label: 'Historical Epic', subtitle: 'Past Eras', desc: 'Roman legions, medieval battles, Napoleonic strategy, and ancient regimes.', icon: Scroll, color: 'text-amber-400', accent: 'border-amber-400/50 bg-amber-400/10' },
+              { key: 'detective' as const, label: 'Noir Detective', subtitle: 'Street Investigation', desc: 'Rain-slicked neon alleys, smoky offices, and hard-boiled mystery clues.', icon: ShieldAlert, color: 'text-indigo-400', accent: 'border-indigo-400/50 bg-indigo-400/10' },
+              { key: 'movie' as const, label: 'Blockbuster Movie', subtitle: 'Cinematic Script', desc: 'High-octane action, car chases, explosions, and cinematic pacing.', icon: Film, color: 'text-red-400', accent: 'border-red-400/50 bg-red-400/10' },
+              { key: 'anime' as const, label: 'Shonen Anime', subtitle: 'Overpowered Moves', desc: 'Chakra levels, energy transformations, and emotional battle speeches.', icon: Swords, color: 'text-pink-400', accent: 'border-pink-400/50 bg-pink-400/10' },
+              { key: 'meme' as const, label: 'Meme Recall™', subtitle: 'Internet Culture', desc: 'Viral templates, hyper-relatable humor, and maximum brainrot cues.', icon: SmilePlus, color: 'text-neon-micro', accent: 'border-neon-micro/50 bg-neon-micro/10' },
+            ]).map(opt => {
+              const Icon = opt.icon
+              const isSelected = storyStyle === opt.key
+              return (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => setStoryStyle(opt.key)}
+                  className={cn(
+                    'relative flex flex-col items-start p-3 rounded-xl border text-left transition-all duration-300',
+                    'hover:scale-[1.01] hover:bg-elevated/80 active:scale-[0.99] group backdrop-blur-sm',
+                    isSelected
+                      ? 'border-white bg-white/[0.04] shadow-glow-sm'
+                      : 'border-border/60 bg-card/40'
+                  )}
+                >
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Icon className={cn('w-4.5 h-4.5 transition-transform duration-300 group-hover:scale-110 shrink-0', isSelected ? opt.color : 'text-ink-tertiary')} />
+                    <div>
+                      <span className={cn('text-xs font-bold tracking-wide transition-colors', isSelected ? 'text-white' : 'text-ink-primary')}>
+                        {opt.label}
+                      </span>
+                      <span className="block text-[8px] font-mono tracking-widest text-ink-muted uppercase font-bold mt-0.5">
+                        {opt.subtitle}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-ink-tertiary leading-normal group-hover:text-ink-secondary transition-colors">
+                    {opt.desc}
+                  </p>
+                </button>
+              )
+            })}
           </div>
         </div>
 
@@ -792,6 +848,48 @@ export default function Workspace({
                     )}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Premium Redirect Actions */}
+            {onViewChange && (
+              <div className="p-4 rounded-xl border border-neon-micro-border bg-neon-micro-dim/5 space-y-3.5">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-neon-micro animate-pulse-glow" />
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-widest font-mono text-neon-micro">Interactive Study Arena Unlocked</h4>
+                    <p className="text-[10px] text-ink-tertiary">Take this generated clinical concept into dedicated learning modes.</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    onClick={() => onViewChange('quiz')}
+                    className="flex items-center justify-between gap-2 p-3.5 rounded-xl border border-neon-green-border bg-neon-green-dim/10 text-neon-green hover:bg-neon-green-dim/25 transition-all duration-200 active:scale-[0.98] group"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 font-sans">
+                      <HelpCircle className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:rotate-12" />
+                      <div className="text-left min-w-0">
+                        <span className="block text-xs font-bold text-white leading-tight">Practice Quiz Arena</span>
+                        <span className="block text-[9px] text-ink-tertiary font-medium">Test clinical scenario-based MCQs</span>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 shrink-0 opacity-70 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
+
+                  <button
+                    onClick={() => onViewChange('notes')}
+                    className="flex items-center justify-between gap-2 p-3.5 rounded-xl border border-neon-biochem-border bg-neon-biochem-dim/10 text-neon-biochem hover:bg-neon-biochem-dim/25 transition-all duration-200 active:scale-[0.98] group"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 font-sans">
+                      <BookOpen className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-y-[-1px]" />
+                      <div className="text-left min-w-0">
+                        <span className="block text-xs font-bold text-white leading-tight">Read High-Yield Notes</span>
+                        <span className="block text-[9px] text-ink-tertiary font-medium">Explore standard textbook outlines</span>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 shrink-0 opacity-70 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
+                </div>
               </div>
             )}
           </div>
