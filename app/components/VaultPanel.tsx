@@ -17,6 +17,8 @@ interface VaultPanelProps {
   /** 'drawer' (default) = fixed slide-over used on mobile/tablet.
    *  'rail' = static flex child used on desktop, sized by its parent. */
   variant?: 'drawer' | 'rail'
+  filter?: VaultFilter
+  onFilterChange?: (filter: VaultFilter) => void
 }
 
 // Difficulty badge derived from SM-2 ease factor — display only, doesn't affect scheduling.
@@ -26,9 +28,11 @@ function difficultyLabel(easeFactor: number): { label: string; className: string
   return { label: 'Hard', className: 'text-neon-danger bg-neon-danger-dim border-neon-danger/30' }
 }
 
-export default function VaultPanel({ cards, onDelete, onToggleFav, onReview, isOpen, onClose, variant = 'drawer' }: VaultPanelProps) {
+export default function VaultPanel({ cards, onDelete, onToggleFav, onReview, isOpen, onClose, variant = 'drawer', filter: propFilter, onFilterChange }: VaultPanelProps) {
   const isRail = variant === 'rail'
-  const [filter, setFilter] = useState<VaultFilter>('all')
+  const [localFilter, setLocalFilter] = useState<VaultFilter>('all')
+  const filter = propFilter ?? localFilter
+  const setFilter = onFilterChange ?? setLocalFilter
   const [search, setSearch] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 

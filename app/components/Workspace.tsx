@@ -11,6 +11,7 @@ import {
 import { SUBJECTS, getSubject } from '../lib/subjects'
 import { SubjectId, MnemonicOutput, GenerationStatus, MnemonicType, VisualStyle } from '../types'
 import { cn } from '../lib/utils'
+import PremiumFlashcard from './PremiumFlashcard'
 
 interface WorkspaceProps {
   activeSubject: SubjectId
@@ -22,6 +23,7 @@ interface WorkspaceProps {
   onToggleVaultCollapsed?: () => void
   /** Topic handed off from the dashboard's "Quick Generate" search bar. */
   initialTopic?: string
+  onMnemonicGenerated?: (topic: string, subjectLabel: string, result: MnemonicOutput) => void
 }
 
 type ResultTab = 'explain' | 'story' | 'anki' | 'visual'
@@ -43,7 +45,7 @@ function buildImageUrl(compiledPrompt: string): string {
 
 export default function Workspace({
   activeSubject, onSubjectChange, onCardSaved, onOpenSidebar, onOpenVault,
-  vaultCollapsed, onToggleVaultCollapsed, initialTopic,
+  vaultCollapsed, onToggleVaultCollapsed, initialTopic, onMnemonicGenerated,
 }: WorkspaceProps) {
   const [topic, setTopic] = useState(initialTopic?.trim() || '')
   const [status, setStatus] = useState<GenerationStatus>('idle')
@@ -131,11 +133,15 @@ export default function Workspace({
       setStatus('success')
       setTab('explain')
       generateImg(data.visualScene)
+
+      if (onMnemonicGenerated) {
+        onMnemonicGenerated(topic.trim(), subject.label, data)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
       setStatus('error')
     }
-  }, [topic, subject.id, status, generateImg, audioOn, mnemonicType, visualStyle])
+  }, [topic, subject.id, status, generateImg, audioOn, mnemonicType, visualStyle, onMnemonicGenerated])
 
   // ── Multi-sensory toggle handlers ────────────────────────────────────────
   const toggleAudio = useCallback(() => {
@@ -423,7 +429,7 @@ export default function Workspace({
         >
           {status === 'generating'
             ? <><RefreshCw className="w-4 h-4 animate-spin" /> Generating...</>
-            : <><Zap className="w-4 h-4" /> Generate Mnemonic + Image</>}
+            : <><Zap className="w-4 h-4" /> Generate Mnemonic and Image</>}
         </button>
         </div>
       </div>
@@ -683,15 +689,23 @@ export default function Workspace({
               )}
 
               {tab === 'anki' && (
-                <div className="animate-fade-in space-y-3">
-                  <div className="p-4 rounded-xl bg-elevated border border-neon-physio-border">
-                    <div className="text-[9px] font-bold uppercase tracking-widest text-neon-physio font-mono mb-2">Front</div>
-                    <p className="text-sm text-ink-primary">{result.ankiFront}</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-elevated border border-neon-biochem-border">
-                    <div className="text-[9px] font-bold uppercase tracking-widest text-neon-biochem font-mono mb-2">Back</div>
-                    <p className="text-xs text-ink-secondary leading-relaxed whitespace-pre-line">{result.ankiBack}</p>
-                  </div>
+                <div className="animate-fade-in">
+                  <PremiumFlashcard
+                    card={{
+                      id: 'preview',
+                      topic: topic,
+                      subject: subject.id,
+                      mnemonic: {
+                        mnemonic: result.mnemonic,
+                        ankiFront: result.ankiFront,
+                        ankiBack: result.ankiBack,
+                        explanation: result.explanation
+                      }
+                    }}
+                    isFavorite={saved}
+                    onToggleFav={handleSave}
+                    onReview={(q) => handleConfidence(q === 2 ? 'hard' : q === 4 ? 'good' : 'easy')}
+                  />
                 </div>
               )}
             </div>

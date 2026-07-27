@@ -1,18 +1,20 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import Sidebar          from './components/Sidebar'
+import Sidebar, { SidebarView } from './components/Sidebar'
 import Workspace        from './components/Workspace'
 import VaultPanel       from './components/VaultPanel'
 import WelcomeDashboard from './components/WelcomeDashboard'
 import UserMenu         from './components/UserMenu'
 import AuthGuard        from './components/AuthGuard'
+import HighYieldNotes, { generateHighYieldNotes, HighYieldNotesData } from './components/HighYieldNotes'
+import QuizArena, { generateDynamicQuiz, QuizQuestion } from './components/QuizArena'
 import { supabase } from './lib/supabase'
 import { vault, downloadAnkiCSV, getDueCount } from './lib/vault'
-import { Flashcard, SubjectId, MnemonicOutput, ReviewQuality } from './types'
+import { Flashcard, SubjectId, MnemonicOutput, ReviewQuality, VaultFilter } from './types'
 import { cn } from './lib/utils'
 
-type View = 'dashboard' | 'workspace'
+type View = 'dashboard' | 'workspace' | 'notes' | 'quiz'
 
 export default function MnemonicFlowPro() {
   const [cards,           setCards]           = useState<Flashcard[]>([])
@@ -20,11 +22,16 @@ export default function MnemonicFlowPro() {
   const [mounted,         setMounted]         = useState(false)
   const [sidebarOpen,     setSidebarOpen]     = useState(false)   // mobile drawer
   const [vaultOpen,       setVaultOpen]       = useState(false)   // mobile drawer
-  const [vaultCollapsed,  setVaultCollapsed]  = useState(false)   // desktop hide/show
+  const [vaultCollapsed,  setVaultCollapsed]  = useState(true)    // desktop hide/show starts collapsed for space optimization
   const [sidebarCollapsed,setSidebarCollapsed]= useState(false)   // desktop hide/show
   const [view,            setView]            = useState<View>('dashboard')
+  const [vaultFilter,     setVaultFilter]     = useState<VaultFilter>('all')
   const [userName,        setUserName]        = useState('Student')
-  const [pendingTopic,    setPendingTopic]     = useState<string | undefined>(undefined)
+  const [pendingTopic,    setPendingTopic]    = useState<string | undefined>(undefined)
+
+  // Premium High Yield Notes & Quiz states
+  const [highYieldNotes,  setHighYieldNotes]  = useState<HighYieldNotesData | null>(null)
+  const [quizQuestions,   setQuizQuestions]   = useState<QuizQuestion[] | null>(null)
 
   useEffect(() => {
     setCards(vault.load())
@@ -63,6 +70,14 @@ export default function MnemonicFlowPro() {
   const goToWorkspace = useCallback((topic?: string) => {
     setPendingTopic(topic)
     setView('workspace')
+  }, [])
+
+  // Hook point when a mnemonic is successfully generated in Workspace
+  const handleMnemonicGenerated = useCallback((topic: string, subjectLabel: string, result: MnemonicOutput) => {
+    const notes = generateHighYieldNotes(topic, subjectLabel, result)
+    const questions = generateDynamicQuiz(topic, result)
+    setHighYieldNotes(notes)
+    setQuizQuestions(questions)
   }, [])
 
   const dueCount = getDueCount(cards)
@@ -104,7 +119,13 @@ export default function MnemonicFlowPro() {
                 collapsed={false}
                 onToggleCollapsed={() => {}}
                 view={view}
-                onViewChange={(v) => { setView(v); setSidebarOpen(false) }}
+                onViewChange={(v) => { setView(v as View); setSidebarOpen(false) }}
+                onFilterSelect={(f) => {
+                  setVaultFilter(f)
+                  setView('workspace')
+                  setSidebarOpen(false)
+                  setVaultOpen(true)
+                }}
               />
             </div>
           </div>
@@ -121,7 +142,12 @@ export default function MnemonicFlowPro() {
             collapsed={sidebarCollapsed}
             onToggleCollapsed={() => setSidebarCollapsed(c => !c)}
             view={view}
-            onViewChange={setView}
+            onViewChange={(v) => setView(v as View)}
+            onFilterSelect={(f) => {
+              setVaultFilter(f)
+              setView('workspace')
+              setVaultCollapsed(false)
+            }}
           />
         </div>
 
@@ -142,7 +168,7 @@ export default function MnemonicFlowPro() {
                 onContinue={() => goToWorkspace()}
                 onOpenVault={() => (window.innerWidth >= 1024 ? setVaultCollapsed(false) : setVaultOpen(true))}
               />
-            ) : (
+            ) : view === 'workspace' ? (
               <Workspace
                 activeSubject={activeSubject}
                 onSubjectChange={setActiveSubject}
@@ -152,6 +178,17 @@ export default function MnemonicFlowPro() {
                 vaultCollapsed={vaultCollapsed}
                 onToggleVaultCollapsed={() => setVaultCollapsed(v => !v)}
                 initialTopic={pendingTopic}
+                onMnemonicGenerated={handleMnemonicGenerated}
+              />
+            ) : view === 'notes' ? (
+              <HighYieldNotes
+                notes={highYieldNotes}
+                onGoToGenerate={() => setView('workspace')}
+              />
+            ) : (
+              <QuizArena
+                questions={quizQuestions}
+                onGoToGenerate={() => setView('workspace')}
               />
             )}
           </div>
@@ -168,6 +205,8 @@ export default function MnemonicFlowPro() {
               isOpen
               onClose={() => setVaultCollapsed(true)}
               variant="rail"
+              filter={vaultFilter}
+              onFilterChange={setVaultFilter}
             />
           </div>
         )}
@@ -182,6 +221,8 @@ export default function MnemonicFlowPro() {
             isOpen={vaultOpen}
             onClose={() => setVaultOpen(false)}
             variant="drawer"
+            filter={vaultFilter}
+            onFilterChange={setVaultFilter}
           />
         </div>
 

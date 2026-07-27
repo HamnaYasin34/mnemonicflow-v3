@@ -2,18 +2,19 @@
 
 // ─────────────────────────────────────────────────────────────────────────────
 // app/components/Sidebar.tsx
-// Glassmorphic fixed left sidebar with medical subject navigation.
-// Collapse state is now controlled by the parent (page.tsx) so the main
-// content margin can stay perfectly in sync — this was the root cause of the
-// "sidebar takes too much space" / overlap issue on desktop.
+// Glassmorphic left sidebar with medical subject navigation and premium routes.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { LayoutGrid, BookOpen, Zap, Star, Clock, Download, ChevronRight, Activity, Sparkles } from 'lucide-react'
+import { useState } from 'react'
+import {
+  LayoutGrid, BookOpen, Zap, Star, Clock, Download, ChevronRight,
+  Activity, Sparkles, Scroll, Target, Settings, Info
+} from 'lucide-react'
 import { SUBJECTS } from '../lib/subjects'
-import { SubjectId } from '../types'
+import { SubjectId, VaultFilter } from '../types'
 import { cn } from '../lib/utils'
 
-export type SidebarView = 'dashboard' | 'workspace'
+export type SidebarView = 'dashboard' | 'workspace' | 'notes' | 'quiz'
 
 interface SidebarProps {
   activeSubject:    SubjectId | null
@@ -25,6 +26,7 @@ interface SidebarProps {
   onToggleCollapsed:() => void
   view?:            SidebarView
   onViewChange?:    (v: SidebarView) => void
+  onFilterSelect?:  (f: VaultFilter) => void
 }
 
 export default function Sidebar({
@@ -37,6 +39,7 @@ export default function Sidebar({
   onToggleCollapsed,
   view = 'workspace',
   onViewChange,
+  onFilterSelect,
 }: SidebarProps) {
   return (
     <aside
@@ -98,16 +101,30 @@ export default function Sidebar({
         <NavItem
           collapsed={collapsed}
           icon={<LayoutGrid className="w-4 h-4" />}
-          label="Dashboard"
+          label="🏠 Dashboard"
           active={view === 'dashboard'}
           onClick={() => onViewChange?.('dashboard')}
         />
         <NavItem
           collapsed={collapsed}
           icon={<Sparkles className="w-4 h-4" />}
-          label="Generate"
+          label="🧠 Generate"
           active={view === 'workspace'}
           onClick={() => onViewChange?.('workspace')}
+        />
+        <NavItem
+          collapsed={collapsed}
+          icon={<Scroll className="w-4 h-4" />}
+          label="📝 High-Yield Notes"
+          active={view === 'notes'}
+          onClick={() => onViewChange?.('notes')}
+        />
+        <NavItem
+          collapsed={collapsed}
+          icon={<Target className="w-4 h-4" />}
+          label="🎯 Quiz Arena"
+          active={view === 'quiz'}
+          onClick={() => onViewChange?.('quiz')}
         />
       </div>
 
@@ -138,29 +155,49 @@ export default function Sidebar({
       {/* ── Quick filters ── */}
       {!collapsed ? (
         <div className="px-3 pt-3 pb-1 space-y-0.5">
-          <SidebarBtn icon={<BookOpen className="w-3.5 h-3.5" />} label="All Cards" badge={totalCards} />
-          {dueCount > 0 && (
-            <SidebarBtn
-              icon={<Clock className="w-3.5 h-3.5" />}
-              label="Review Due"
-              badge={dueCount}
-              badgeVariant="review"
-              pulse
-            />
-          )}
-          <SidebarBtn icon={<Star className="w-3.5 h-3.5" />} label="Favorites" />
-          <SidebarBtn icon={<Zap className="w-3.5 h-3.5" />} label="Recent" />
+          <SidebarBtn
+            icon={<BookOpen className="w-3.5 h-3.5" />}
+            label="📚 Vault"
+            badge={totalCards}
+            onClick={() => onFilterSelect?.('all')}
+          />
+          <SidebarBtn
+            icon={<Star className="w-3.5 h-3.5" />}
+            label="⭐ Favorites"
+            onClick={() => onFilterSelect?.('favorites')}
+          />
+          <SidebarBtn
+            icon={<Clock className="w-3.5 h-3.5" />}
+            label="⏰ Review Due"
+            badge={dueCount}
+            badgeVariant="review"
+            onClick={() => onFilterSelect?.('due')}
+          />
+          <SidebarBtnWithTooltip
+            icon={<Settings className="w-3.5 h-3.5" />}
+            label="⚙ Settings"
+            tooltip="Settings mode is reserved for premium MnemonicFlow institutional accounts."
+          />
         </div>
       ) : (
         <div className="px-2 pt-2 pb-1 space-y-1">
-          <div title={`All Cards (${totalCards})`} className="flex items-center justify-center py-2 rounded-xl text-ink-tertiary hover:text-ink-secondary hover:bg-elevated/60 transition-colors">
+          <button
+            onClick={() => onFilterSelect?.('all')}
+            title={`All Cards (${totalCards})`}
+            className="w-full flex items-center justify-center py-2 rounded-xl text-ink-tertiary hover:text-ink-secondary hover:bg-elevated/60 transition-colors"
+          >
             <BookOpen className="w-4 h-4" />
-          </div>
-          {dueCount > 0 && (
-            <div title={`Review Due (${dueCount})`} className="flex items-center justify-center py-2 rounded-xl text-neon-review hover:bg-neon-review-dim transition-colors">
-              <Clock className="w-4 h-4" />
-            </div>
-          )}
+          </button>
+          <button
+            onClick={() => onFilterSelect?.('due')}
+            title={`Review Due (${dueCount})`}
+            className={cn(
+              "w-full flex items-center justify-center py-2 rounded-xl transition-colors",
+              dueCount > 0 ? "text-neon-review hover:bg-neon-review-dim" : "text-ink-tertiary hover:text-ink-secondary hover:bg-elevated/60"
+            )}
+          >
+            <Clock className="w-4 h-4" />
+          </button>
         </div>
       )}
 
@@ -269,7 +306,7 @@ function NavItem({
       className={cn(
         'w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-left transition-all duration-150',
         active
-          ? 'bg-neon-green-dim border border-neon-green-border text-neon-green'
+          ? 'bg-neon-green-dim border border-neon-green-border text-neon-green font-bold shadow-sm'
           : 'text-ink-secondary hover:text-ink-primary hover:bg-elevated/60 border border-transparent',
         collapsed && 'justify-center px-0',
       )}
@@ -282,16 +319,19 @@ function NavItem({
 
 // ── Mini sidebar button ────────────────────────────────────────────────────────
 function SidebarBtn({
-  icon, label, badge, badgeVariant = 'default', pulse = false,
+  icon, label, badge, badgeVariant = 'default', onClick,
 }: {
   icon:          React.ReactNode
   label:         string
   badge?:        number
   badgeVariant?: 'default' | 'review'
-  pulse?:        boolean
+  onClick?:      () => void
 }) {
   return (
-    <button className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left hover:bg-elevated/50 transition-colors group">
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left hover:bg-elevated/50 transition-colors group active:scale-[0.98]"
+    >
       <span className="text-ink-tertiary group-hover:text-ink-secondary transition-colors">{icon}</span>
       <span className="flex-1 text-xs text-ink-secondary group-hover:text-ink-primary transition-colors">
         {label}
@@ -302,11 +342,44 @@ function SidebarBtn({
           badgeVariant === 'review'
             ? 'bg-neon-review-dim text-neon-review'
             : 'bg-subtle text-ink-tertiary',
-          pulse && 'animate-pulse',
         )}>
           {badge}
         </span>
       )}
     </button>
+  )
+}
+
+// ── Sidebar button with custom institutional premium tooltip ──────────────────
+function SidebarBtnWithTooltip({
+  icon, label, tooltip
+}: {
+  icon:    React.ReactNode
+  label:   string
+  tooltip: string
+}) {
+  const [show, setShow] = useState(false)
+  return (
+    <div className="relative w-full">
+      <button
+        type="button"
+        onMouseEnter={() => setShow(true)}
+        onMouseLeave={() => setShow(false)}
+        onClick={() => alert(tooltip)}
+        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left text-ink-tertiary/75 hover:bg-elevated/30 transition-colors group active:scale-[0.98]"
+      >
+        <span className="text-ink-tertiary/60 group-hover:text-ink-secondary transition-colors">{icon}</span>
+        <span className="flex-1 text-xs text-ink-tertiary/75 group-hover:text-ink-secondary transition-colors">
+          {label}
+        </span>
+      </button>
+
+      {show && (
+        <div className="absolute left-full top-0 ml-2 w-48 p-2 rounded-lg bg-void border border-border text-[10px] text-ink-secondary z-50 shadow-card-lg animate-fade-in leading-normal flex gap-1.5">
+          <Info className="w-3.5 h-3.5 text-neon-physio shrink-0" />
+          <span>{tooltip}</span>
+        </div>
+      )}
+    </div>
   )
 }
